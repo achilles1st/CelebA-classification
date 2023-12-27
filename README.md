@@ -1,2 +1,2 @@
 # CelebA-classification
-Using a cVAE model to try and classify the CelebA dataset
+Using a cVAE model to generate class-specific data inputs.
