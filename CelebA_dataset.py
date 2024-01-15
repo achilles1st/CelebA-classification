@@ -9,7 +9,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from PIL import Image
 import shutil
-from sklearn.model_selection import train_test_split
+import os
+import pickle
+import numpy as np
 
 
 # Function to download and extract CelebA dataset
@@ -125,13 +127,13 @@ def select_attributes_celeba_dataset(input_folder, output_folder, attributes_df,
     - selected_attributes (list): List of attribute names to use.
     """
     # Create output folder for the selected subset of images
-    subset_folder = os.path.join(output_folder, 'selected')
-    # if os.path.exists(subset_folder):
-    #     print("grey images already exist.")
-    #     return
+    subset_folder = os.path.join(output_folder, 'selected_RGB')
+    if os.path.exists(subset_folder):
+        print("select folder already exist.")
+        return
 
     # Create the output folder if it doesn't exist
-    #os.makedirs(subset_folder, exist_ok=True)
+    os.makedirs(subset_folder, exist_ok=True)
 
     # Reset the index to ensure 'index' becomes a column
     attributes_df_reset = attributes_df.reset_index()
@@ -161,13 +163,47 @@ def select_attributes_celeba_dataset(input_folder, output_folder, attributes_df,
         print(f"Copying {image_id}...")
 
 
+def image_folder_to_pickle(input_folder, output_pickle):
+    """
+    Convert images from a folder to a pickle file.
+
+    Parameters:
+    - input_folder (str): Path to the folder containing images.
+    - output_pickle (str): Path to the output pickle file.
+
+    Returns:
+    None
+    """
+    # Get a list of image files in the folder
+    image_files = [f for f in os.listdir(input_folder) if f.endswith(('.jpg', '.png', '.jpeg'))]
+
+    # Initialize lists to store images and filenames
+    images = []
+    filenames = []
+
+    # Read each image and store it in the lists
+    for image_file in image_files:
+        image_path = os.path.join(input_folder, image_file)
+        img = Image.open(image_path)
+        img_array = np.array(img)
+        images.append(img_array)
+        filenames.append(image_file)
+        print(f"Loading {image_file}...")
+
+    # Create a dictionary with images and filenames
+    data = {'images': images, 'filenames': filenames}
+
+    # Save the dictionary as a pickle file
+    with open(output_pickle, 'wb') as f:
+        pickle.dump(data, f)
+
 
 
 if __name__ == "__main__":
     download_and_extract_CelebA()
     attr_path = 'C:\\Users\\tosic\\tensorflow_datasets\\celeba_dataset\\celeba\\list_attr_celeba.txt'
     image_dir = 'C:\\Users\\tosic\\tensorflow_datasets\\celeba_dataset\\celeba\\images'
-    output_path_greyscale = ('C:\\Users\\tosic\\tensorflow_datasets\\celeba_dataset\\greyscale_images')
+    output_path_greyscale = 'C:\\Users\\tosic\\tensorflow_datasets\\celeba_dataset\\greyscale_images'
 
     selected_attributes = ["Bushy_Eyebrows", "Smiling", "Young", "Attractive", "Eyeglasses", "Wearing_Earrings",
                            "Wearing_Hat", "Wearing_Lipstick", "Wearing_Necklace", "Blond_Hair"]
@@ -185,8 +221,12 @@ if __name__ == "__main__":
     # convert images to greyscale
     batch_greyscale_conversion(image_dir, output_path_greyscale)
 
+    # select attributes
     output_folder_selected = 'C:\\Users\\tosic\\tensorflow_datasets\\celeba_dataset'
     # only use selected attributes
-    select_attributes_celeba_dataset(output_path_greyscale, output_folder_selected, attributes_df, selected_attributes)
+    select_attributes_celeba_dataset(image_dir, output_folder_selected, attributes_df, selected_attributes)
 
-
+    # convert images to pickle
+    input_folder = 'C:\\Users\\tosic\\tensorflow_datasets\\celeba_dataset\\selected'
+    output_pickle = 'C:\\Users\\tosic\\tensorflow_datasets\\celeba_dataset\\celeba.pkl'
+    image_folder_to_pickle(input_folder, output_pickle)
