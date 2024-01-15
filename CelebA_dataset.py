@@ -126,25 +126,35 @@ def select_attributes_celeba_dataset(input_folder, output_folder, attributes_df,
     """
     # Create output folder for the selected subset of images
     subset_folder = os.path.join(output_folder, 'selected')
-    if os.path.exists(subset_folder):
-        print("grey images already exist.")
-        return
+    # if os.path.exists(subset_folder):
+    #     print("grey images already exist.")
+    #     return
 
     # Create the output folder if it doesn't exist
-    os.makedirs(subset_folder, exist_ok=True)
+    #os.makedirs(subset_folder, exist_ok=True)
 
-    # Select subset of attributes
-    subset_attributes_df = attributes_df[selected_attributes][attributes_df[selected_attributes] == 1]
+    # Reset the index to ensure 'index' becomes a column
+    attributes_df_reset = attributes_df.reset_index()
+
+
+    # Create a new DataFrame containing only the selected attributes
+    subset_attributes_df_excluding_index = attributes_df_reset[selected_attributes][
+        attributes_df_reset[selected_attributes] == 1].fillna(0).applymap(int)
+
+    # Concatenate 'index' column with the new DataFrame
+    subset_attributes_df = pd.concat([attributes_df_reset['index'], subset_attributes_df_excluding_index], axis=1)
+    subset_attributes_df = subset_attributes_df.rename(columns={'index': 'image_id'})
+
+    # Remove rows with all zeros
+    valid_indices = subset_attributes_df.loc[(subset_attributes_df.iloc[:, 1:] != 0).any(axis=1)]
 
     # Save attributes as a CSV file
     attributes_csv_path = os.path.join(output_folder, 'subset_attributes.csv')
-    subset_attributes_df.to_csv(attributes_csv_path, index=False)
-
-    valid_indices = subset_attributes_df.index[~subset_attributes_df.isna().all(axis=1)]
+    valid_indices.to_csv(attributes_csv_path, index=False, sep=' ')
 
     # Split the subset into train and test sets
     # Copy images to the subset folder
-    for i, image_id in enumerate(valid_indices):
+    for image_id in valid_indices['image_id']:
         image_path = os.path.join(input_folder, f'{image_id}')
         shutil.copy(image_path, os.path.join(subset_folder, f'{image_id}'))
 
